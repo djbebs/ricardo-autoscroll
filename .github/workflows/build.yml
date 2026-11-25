@@ -1,5 +1,7 @@
 name: Build Android APK
 on: [push, workflow_dispatch]
+permissions:
+  contents: read
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -16,9 +18,23 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - run: gradle assembleDebug --no-daemon
+      - name: Audit source
+        run: |
+          ! grep -R -E 'getRootInActiveWindow|getWindows\(|android.permission.INTERNET|canRetrieveWindowContent="true"' app/src/main
+      - run: gradle assembleRelease lintRelease --no-daemon
+      - name: Sign test release and verify
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/test.jks" -storepass changeit -keypass changeit -alias test -keyalg RSA -keysize 2048 -validity 365 -dname "CN=Ricardo AutoScroll Test"
+          BT="$ANDROID_HOME/build-tools/35.0.0"
+          "$BT/zipalign" -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/test.jks" --ks-pass pass:changeit --key-pass pass:changeit --out RicardoAutoScroll-V2-test.apk "$RUNNER_TEMP/aligned.apk"
+          "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V2-test.apk
+          "$BT/aapt" dump permissions RicardoAutoScroll-V2-test.apk
+          sha256sum RicardoAutoScroll-V2-test.apk > SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
-          name: RicardoAutoScroll-APK
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: RicardoAutoScroll-V2-test
+          path: |
+            RicardoAutoScroll-V2-test.apk
+            SHA256SUMS.txt
           if-no-files-found: error
