@@ -1,7 +1,7 @@
 package ch.local.autoscroll;
 import android.accessibilityservice.*;import android.graphics.*;import android.os.*;import android.view.*;import android.view.accessibility.*;import android.widget.*;
 public class ScrollService extends AccessibilityService {
- final Handler h=new Handler(Looper.getMainLooper()); WindowManager wm; LinearLayout panel; Button main,stop; boolean running=false,paused=false,busy=false; long deadline,remaining,ready; int generation=0; static final String TARGET="ch.ricardo.android";
+ final Handler h=new Handler(Looper.getMainLooper()); WindowManager wm; LinearLayout panel; Button main,stop; boolean running=false,paused=false,busy=false; long deadline,remaining,ready; int generation=0; static final String TARGET="com.qxl.Client";
  final Runnable tick=()->step();
  int cfg(String k,int def){return getSharedPreferences("cfg",0).getInt(k,def);}
  boolean foreground=false; boolean target(){return foreground && getSystemService(android.os.PowerManager.class).isInteractive() && !getSystemService(android.app.KeyguardManager.class).isKeyguardLocked();}
