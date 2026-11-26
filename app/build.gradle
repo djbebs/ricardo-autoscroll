@@ -1,2 +1,2 @@
 plugins { id 'com.android.application' }
-android { namespace 'ch.local.autoscroll'; compileSdk 35; defaultConfig { applicationId 'ch.local.autoscroll'; minSdk 29; targetSdk 35; versionCode 13; versionName '3.4' } }
+android { namespace 'ch.local.autoscroll'; compileSdk 35; defaultConfig { applicationId 'ch.local.autoscroll'; minSdk 29; targetSdk 35; versionCode 14; versionName '4.0-alpha1' } }
