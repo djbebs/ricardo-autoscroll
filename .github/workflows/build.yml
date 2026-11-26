@@ -5,6 +5,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -21,7 +22,20 @@ jobs:
       - name: Audit source
         run: |
           ! grep -R -E 'android.permission.INTERNET|getWindows\(' app/src/main
-      - run: gradle assembleRelease lintRelease --no-daemon
+      - name: Build and lint with network retry
+        shell: bash
+        run: |
+          set -o pipefail
+          for attempt in 1 2 3; do
+            if gradle assembleRelease lintRelease --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/gradle-build.log"; then
+              exit 0
+            fi
+            if ! grep -Eqi 'status code (429|502|503|504)|Too Many Requests|Read timed out|Connection reset' "$RUNNER_TEMP/gradle-build.log"; then
+              exit 1
+            fi
+            if [ "$attempt" -eq 3 ]; then exit 1; fi
+            sleep $((attempt * 60))
+          done
       - name: Sign release and verify
         env:
           SIGNING_KEY: ${{ secrets.RICARDO_KEYSTORE_BASE64 }}
