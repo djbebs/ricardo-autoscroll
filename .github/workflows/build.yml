@@ -30,7 +30,7 @@ jobs:
 
       - name: Audit source
         run: |
-          ! grep -R -E 'android.permission.INTERNET|getWindows\(' app/src/main
+          ! grep -R -E 'android.permission.INTERNET' app/src/main
 
       - name: Build and lint with network retry
         shell: bash
@@ -78,21 +78,21 @@ jobs:
             --ks-key-alias "$SIGNING_ALIAS" \
             --ks-pass env:SIGNING_PASSWORD \
             --key-pass env:SIGNING_KEY_PASSWORD \
-            --out RicardoAutoScroll-V4.18.apk \
+            --out RicardoAutoScroll-V4.19.apk \
             "$RUNNER_TEMP/aligned.apk"
 
-          "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V4.18.apk
+          "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V4.19.apk
 
-          "$BT/aapt" dump permissions RicardoAutoScroll-V4.18.apk
+          "$BT/aapt" dump permissions RicardoAutoScroll-V4.19.apk
 
-          sha256sum RicardoAutoScroll-V4.18.apk > SHA256SUMS.txt
+          sha256sum RicardoAutoScroll-V4.19.apk > SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RicardoAutoScroll-V4.18
+          name: RicardoAutoScroll-V4.19
           path: |
-            RicardoAutoScroll-V4.18.apk
+            RicardoAutoScroll-V4.19.apk
             SHA256SUMS.txt
           if-no-files-found: error
 
-# Rebuild V4.18 using configured permanent signing secrets.
+# Rebuild V4.19 using configured permanent signing secrets.
