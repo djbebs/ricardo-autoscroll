@@ -94,3 +94,5 @@ jobs:
             RicardoAutoScroll-V4.18.apk
             SHA256SUMS.txt
           if-no-files-found: error
+
+# Rebuild V4.18 using configured permanent signing secrets.
