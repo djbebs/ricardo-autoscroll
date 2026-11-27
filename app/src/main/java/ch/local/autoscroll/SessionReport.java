@@ -1,0 +1,19 @@
+package ch.local.autoscroll;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import org.json.*;
+import java.util.*;
+public final class SessionReport {
+ private static SharedPreferences prefs(Context c){return c.getSharedPreferences("session_v5",0);}
+ static void begin(Context c){prefs(c).edit().putLong("started",System.currentTimeMillis()).putInt("expected",0).putString("state","running").putString("clips","[]").apply();}
+ static void expected(Context c,int n){prefs(c).edit().putInt("expected",n).apply();}
+ static void complete(Context c){prefs(c).edit().putString("state","complete").apply();}
+ static void end(Context c){if("running".equals(prefs(c).getString("state","")))prefs(c).edit().putString("state","partial").apply();}
+ static JSONArray clips(Context c){try{return new JSONArray(prefs(c).getString("clips","[]"));}catch(JSONException e){return new JSONArray();}}
+ static void add(Context c,String name,Uri uri,String filename,long seconds){if(!"running".equals(prefs(c).getString("state","")))return;try{JSONArray a=clips(c);JSONObject o=new JSONObject();o.put("name",name);o.put("uri",uri.toString());o.put("file",filename);o.put("seconds",seconds);a.put(o);prefs(c).edit().putString("clips",a.toString()).apply();}catch(JSONException ignored){}}
+ static int count(Context c){return clips(c).length();}
+ static String summary(Context c){SharedPreferences p=prefs(c);JSONArray a=clips(c);long started=p.getLong("started",0);if(started==0)return "Aucune session enregistrée depuis V5.0";int expected=p.getInt("expected",0);String state=p.getString("state","");String status="complete".equals(state)?"Terminée":"running".equals(state)?"En cours":"Interrompue";StringBuilder s=new StringBuilder(new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm",Locale.FRANCE).format(new Date(started))).append(" • ").append(status).append("\n").append(a.length()).append(" / ").append(expected>0?String.valueOf(expected):"?").append(" vidéos sauvegardées");for(int i=0;i<a.length();i++){JSONObject o=a.optJSONObject(i);if(o!=null)s.append("\n").append(i+1).append(". ").append(o.optString("name")).append(" • ").append(o.optLong("seconds")).append(" s");}return s.toString();}
+ static String filename(String name,int index){String safe=name.replaceAll("[^\\p{L}\\p{N}._ -]","_").trim().replaceAll("\\s+","_");if(safe.isEmpty())safe="Recherche";if(safe.length()>65)safe=safe.substring(0,65);return "Ricardo_"+new java.text.SimpleDateFormat("yyyyMMdd_HHmmss",Locale.US).format(new Date())+"_"+String.format(Locale.US,"%02d",index)+"_"+safe+".mp4";}
+ static String prompt(Context c){return "Analyse les vidéos de recherches Ricardo jointes pour identifier les meilleures affaires en Suisse, pour mon atelier et pour la revente (flipping). Examine les annonces visibles dans toutes les vidéos, déduplique les annonces répétées et ne devine pas les informations illisibles. Priorise les marques reconnues, les outils 230 V et les objets faciles à revendre. Pour chaque affaire pertinente : titre original EXACT copiable (sans traduction ni reformulation), prix affiché en CHF, état, marque/modèle, valeur de revente réaliste en Suisse, frais, remise en état cosmétique simple avec coût et temps, marge nette estimée, facilité de revente, risques et prix maximal d'achat conseillé. Vérifie les comparables et prix actuels sur Internet lorsque possible, indique les sources et sépare les faits des estimations. Classe les meilleures opportunités par intérêt et indique ACHETER / SURVEILLER / PASSER. Ne recommande pas les objets sans marge suffisante ou avec risque disproportionné. Si une vidéo ou un détail est inaccessible, signale-le sans inventer. Pour les titres Ricardo, conserve exactement le texte original. Ne passe aucune enchère et ne contacte aucun vendeur.\n\nSession :\n"+summary(c);}
+}
