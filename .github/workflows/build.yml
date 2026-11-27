@@ -1,27 +1,37 @@
+
 name: Build Android APK
 on: [push, workflow_dispatch]
+
 permissions:
   contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - uses: android-actions/setup-android@v4
         with:
           packages: 'platform-tools'
+
       - run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+
       - name: Audit source
         run: |
           ! grep -R -E 'android.permission.INTERNET|getWindows\(' app/src/main
+
       - name: Build and lint with network retry
         shell: bash
         run: |
@@ -36,24 +46,47 @@ jobs:
             if [ "$attempt" -eq 3 ]; then exit 1; fi
             sleep $((attempt * 60))
           done
-      - name: Sign release and verify
+
+      - name: Sign release with permanent key
+        shell: bash
         env:
-          SIGNING_KEY: ${{ secrets.RICARDO_KEYSTORE_BASE64 }}
-          SIGNING_PASSWORD: ${{ secrets.RICARDO_KEYSTORE_PASSWORD }}
+          SIGNING_KEY: ${{ secrets.KEYSTORE_BASE64 }}
+          SIGNING_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_ALIAS: ${{ secrets.KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -n "$SIGNING_KEY" ] || [ -n "$SIGNING_PASSWORD" ]; then
-            test -n "$SIGNING_KEY" && test -n "$SIGNING_PASSWORD" || exit 1
-            printf %s "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/release.jks"
-          else
-            SIGNING_PASSWORD=changeit
-            keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks" -storepass changeit -keypass changeit -alias ricardo -keyalg RSA -keysize 2048 -validity 365 -dname "CN=Ricardo AutoScroll Test"
-          fi
+          set -euo pipefail
+
+          test -n "$SIGNING_KEY"
+          test -n "$SIGNING_PASSWORD"
+          test -n "$SIGNING_ALIAS"
+          test -n "$SIGNING_KEY_PASSWORD"
+
+          umask 077
+          trap 'rm -f "$RUNNER_TEMP/release.jks"' EXIT
+
+          printf '%s' "$SIGNING_KEY" | base64 -d > "$RUNNER_TEMP/release.jks"
+
           BT="$ANDROID_HOME/build-tools/35.0.0"
-          "$BT/zipalign" -f 4 app/build/outputs/apk/release/app-release-unsigned.apk "$RUNNER_TEMP/aligned.apk"
-          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias ricardo --ks-pass env:SIGNING_PASSWORD --key-pass env:SIGNING_PASSWORD --out RicardoAutoScroll-V4.17.apk "$RUNNER_TEMP/aligned.apk"
+
+          "$BT/zipalign" -f 4 \
+            app/build/outputs/apk/release/app-release-unsigned.apk \
+            "$RUNNER_TEMP/aligned.apk"
+
+          "$BT/apksigner" sign \
+            --ks "$RUNNER_TEMP/release.jks" \
+            --ks-key-alias "$SIGNING_ALIAS" \
+            --ks-pass env:SIGNING_PASSWORD \
+            --key-pass env:SIGNING_KEY_PASSWORD \
+            --out RicardoAutoScroll-V4.17.apk \
+            "$RUNNER_TEMP/aligned.apk"
+
           "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V4.17.apk
+
           "$BT/aapt" dump permissions RicardoAutoScroll-V4.17.apk
+
           sha256sum RicardoAutoScroll-V4.17.apk > SHA256SUMS.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: RicardoAutoScroll-V4.17
