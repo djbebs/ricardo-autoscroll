@@ -78,21 +78,21 @@ jobs:
             --ks-key-alias "$SIGNING_ALIAS" \
             --ks-pass env:SIGNING_PASSWORD \
             --key-pass env:SIGNING_KEY_PASSWORD \
-            --out RicardoAutoScroll-V5.6.apk \
+            --out RicardoAutoScroll-V5.7.apk \
             "$RUNNER_TEMP/aligned.apk"
 
-          "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V5.6.apk
+          "$BT/apksigner" verify --verbose --print-certs RicardoAutoScroll-V5.7.apk
 
-          "$BT/aapt" dump permissions RicardoAutoScroll-V5.6.apk
+          "$BT/aapt" dump permissions RicardoAutoScroll-V5.7.apk
 
-          sha256sum RicardoAutoScroll-V5.6.apk > SHA256SUMS.txt
+          sha256sum RicardoAutoScroll-V5.7.apk > SHA256SUMS.txt
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RicardoAutoScroll-V5.6
+          name: RicardoAutoScroll-V5.7
           path: |
-            RicardoAutoScroll-V5.6.apk
+            RicardoAutoScroll-V5.7.apk
             SHA256SUMS.txt
           if-no-files-found: error
 
-# Rebuild V5.6 using configured permanent signing secrets.
+# Rebuild V5.7 using configured permanent signing secrets.
